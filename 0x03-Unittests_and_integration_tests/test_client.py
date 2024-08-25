@@ -6,8 +6,7 @@ from unittest.mock import patch, PropertyMock, Mock
 from parameterized import parameterized, parameterized_class
 from client import GithubOrgClient
 from fixtures import TEST_PAYLOAD
-import requests
-from typing import Dict, List
+from typing import Dict
 
 
 class TestGithubOrgClient(unittest.TestCase):
@@ -58,7 +57,7 @@ class TestGithubOrgClient(unittest.TestCase):
         ({"license": {"key": "other_license"}}, "my_license", False),
         ({}, "my_license", False),  # Test with empty repo
         ({"license": None}, "my_license", False),  # Test with None license
-        ({"license": {"key": "my_license"}}, "", False)
+        ({"license": {"key": "my_license"}}, "", False)  # Empty lcs key
     ])
     def test_has_license(self, repo: Dict, license_key: str, expected: bool):
         """Test has_license method"""
@@ -102,14 +101,18 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         """Tear down after the integration tests"""
         cls.get_patcher.stop()
 
+    def setUp(self):
+        """Reset mock before each test"""
+        self.mock_get.reset_mock()
+
     def test_public_repos(self):
         """Integration test for public_repos method"""
         test_class = GithubOrgClient("google")
         result = test_class.public_repos()
         self.assertEqual(result, self.expected_repos)
 
-        # Test that the mocked method was called exactly once
-        self.mock_get.assert_called_once()
+        # Test that the mocked method was called twice
+        self.assertEqual(self.mock_get.call_count, 2)
 
     def test_public_repos_with_license(self):
         """Integration test for public_repos method with license"""
@@ -117,8 +120,8 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         result = test_class.public_repos(license="apache-2.0")
         self.assertEqual(result, self.apache2_repos)
 
-        # Test that the mocked method was called exactly once
-        self.mock_get.assert_called_once()
+        # Test that the mocked method was called twice
+        self.assertEqual(self.mock_get.call_count, 2)
 
     def test_public_repos_with_invalid_license(self):
         """Test public_repos with an invalid license"""
